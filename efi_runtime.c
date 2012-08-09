@@ -51,7 +51,7 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EFAULT;
 
 		status = efi.get_variable(getvariable.variable_name,
-					(efi_guid_t *)getvariable.VendorGuid,
+					getvariable.VendorGuid,
 					getvariable.Attributes,
 					getvariable.DataSize, getvariable.Data);
 		if (status == EFI_SUCCESS) {
@@ -69,7 +69,7 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EFAULT;
 
 		status = efi.set_variable(setvariable.variable_name,
-					(efi_guid_t *)setvariable.VendorGuid,
+					setvariable.VendorGuid,
 					setvariable.Attributes,
 					setvariable.DataSize, setvariable.Data);
 
@@ -77,12 +77,6 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	}
 	return -ENOTTY;
 }
-
-/*
- *	We enforce only one user at a time here with the open/close.
- *	Also clear the previous interrupt data on an open, and clean
- *	up things on a close.
- */
 
 static int efi_runtime_open(struct inode *inode, struct file *file)
 {
@@ -120,17 +114,7 @@ static int __init efi_runtime_init(void)
 {
 	int ret;
 
-/*
-	u32 AttributesArray = EFI_VARIABLE_NON_VOLATILE |
-				EFI_VARIABLE_BOOTSERVICE_ACCESS |
-				EFI_VARIABLE_RUNTIME_ACCESS;
-	u8 Data[4] = { 1, 2, 3, 4};
-	u8 TestData[4];
-	unsigned long DataSize = 4;
-	bool ident = true;
-	int i;
-*/
-	printk(KERN_INFO "EFI EFI_RUNTIME Driver v%s\n", EFI_FWTSEFI_VERSION);
+	printk(KERN_INFO "EFI_RUNTIME Driver v%s\n", EFI_FWTSEFI_VERSION);
 
 	ret = misc_register(&efi_runtime_dev);
 	if (ret) {
@@ -139,49 +123,6 @@ static int __init efi_runtime_init(void)
 		return ret;
 	}
 
-/*
-printk(KERN_INFO "Get TestVariable variable, should be EFI_NOT_FOUND:\n");
-
-	status = efi.get_variable((efi_char16_t *)L"TestVariable", &gTestGuid,
-					NULL, &DataSize, TestData);
-
-	if (status == EFI_NOT_FOUND)
-		printk(KERN_INFO "Get variable [Pass]\n");
-	else
-		printk(KERN_INFO "Get variable [Fail]\n");
-
-	printk(KERN_INFO "Set TestVariable variable, should be EFI_SUCCESS:\n");
-
-	status = efi.set_variable((efi_char16_t *)L"TestVariable", &gTestGuid,
-					AttributesArray, DataSize, Data);
-
-	if (status == EFI_SUCCESS)
-		printk(KERN_INFO "Get variable [Pass]\n");
-	else
-		printk(KERN_INFO "Get variable [Fail]\n");
-
-	printk(KERN_INFO "Get TestVariable variable, should be EFI_SUCCESS:\n");
-
-	status = efi.get_variable((efi_char16_t *)L"TestVariable", &gTestGuid,
-					NULL, &DataSize, TestData);
-
-	if (status == EFI_SUCCESS)
-		printk(KERN_INFO "Get variable [Pass]\n");
-	else
-		printk(KERN_INFO "Get variable [Fail]\n");
-
-	printk(KERN_INFO "Check TestVariable data:\n");
-
-	for (i = 0 ; i < DataSize; i++) {
-		if (Data[i] != TestData[i])
-			ident = false;
-	}
-
-	if (ident)
-		printk(KERN_INFO "Get variable [Pass]\n");
-	else
-		printk(KERN_INFO "Get variable [Fail]\n");
-*/
 	return 0;
 }
 

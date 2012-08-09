@@ -23,25 +23,45 @@
 
 #include <linux/types.h>
 
+typedef unsigned long		UINTN;
+typedef unsigned long		UINT64;
+typedef long			INT64;
+typedef unsigned int		UINT32;
+typedef int			INT32;
+typedef unsigned short		UINT16;
+typedef unsigned short		CHAR16;
+typedef short			INT16;
+typedef unsigned char		BOOLEAN;
+typedef unsigned char		UINT8;
+typedef char			CHAR8;
+typedef char			INT8;
+typedef void			VOID;
+
+typedef struct {
+  UINT32  Data1;
+  UINT16  Data2;
+  UINT16  Data3;
+  UINT8   Data4[8];
+} EFI_GUID;
+
 struct efi_getvariable {
-	unsigned short	*variable_name;
-	unsigned char	VendorGuid[16];
-	unsigned int	*Attributes;
-	unsigned long	*DataSize;
-	void		*Data;
+	CHAR16		*variable_name;
+	EFI_GUID	*VendorGuid;
+	UINT32		*Attributes;
+	UINTN		*DataSize;
+	VOID		*Data;
 };
 
 struct efi_setvariable {
-	unsigned short	*variable_name;
-	unsigned char	VendorGuid[16];
-	unsigned int	Attributes;
-	unsigned long	DataSize;
-	void		*Data;
+	CHAR16		*variable_name;
+	EFI_GUID	*VendorGuid;
+	UINT32		Attributes;
+	UINTN		DataSize;
+	VOID		*Data;
 };
 
-/*
- * ioctl calls that are permitted to the /dev/efi_runtime interface.
- */
+/* ioctl calls that are permitted to the /dev/efi_runtime interface. */
+
 #define EFI_RUNTIME_GET_VARIABLE _IOWR('p', 0x01, struct efi_getvariable)
 #define EFI_RUNTIME_SET_VARIABLE _IOW('p', 0x02, struct efi_setvariable)
 
