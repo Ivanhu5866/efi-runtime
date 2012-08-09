@@ -51,7 +51,7 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EFAULT;
 
 		status = efi.get_variable(getvariable.variable_name,
-					getvariable.VendorGuid,
+					(efi_guid_t *)getvariable.VendorGuid,
 					getvariable.Attributes,
 					getvariable.DataSize, getvariable.Data);
 		if (status == EFI_SUCCESS) {
@@ -69,7 +69,7 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EFAULT;
 
 		status = efi.set_variable(setvariable.variable_name,
-					setvariable.VendorGuid,
+					(efi_guid_t *)setvariable.VendorGuid,
 					setvariable.Attributes,
 					setvariable.DataSize, setvariable.Data);
 
