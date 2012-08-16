@@ -23,9 +23,9 @@
 
 #include <linux/types.h>
 
-typedef unsigned long		UINTN;
-typedef unsigned long		UINT64;
-typedef long			INT64;
+typedef unsigned long int	UINTN;
+typedef unsigned long long	UINT64;
+typedef long long		INT64;
 typedef unsigned int		UINT32;
 typedef int			INT32;
 typedef unsigned short		UINT16;
@@ -38,11 +38,31 @@ typedef char			INT8;
 typedef void			VOID;
 
 typedef struct {
-  UINT32  Data1;
-  UINT16  Data2;
-  UINT16  Data3;
-  UINT8   Data4[8];
+	UINT32  Data1;
+	UINT16  Data2;
+	UINT16  Data3;
+	UINT8   Data4[8];
 } EFI_GUID;
+
+typedef struct {
+	UINT16	Year;		/* 1900 – 9999 */
+	UINT8	Month;		/* 1 – 12 */
+	UINT8	Day;		/* 1 – 31 */
+	UINT8	Hour;		/* 0 – 23 */
+	UINT8	Minute;		/* 0 – 59 */
+	UINT8	Second;		/* 0 – 59 */
+	UINT8	Pad1;
+	UINT32	Nanosecond;	/* 0 – 999,999,999 */
+	INT16	TimeZone;	/* -1440 to 1440 or 2047 */
+	UINT8	Daylight;
+	UINT8	Pad2;
+} EFI_TIME;
+
+typedef struct {
+	UINT32	Resolution;
+	UINT32	Accuracy;
+	BOOLEAN	SetsToZero;
+} EFI_TIME_CAPABILITIES;
 
 struct efi_getvariable {
 	CHAR16		*variable_name;
@@ -60,9 +80,20 @@ struct efi_setvariable {
 	VOID		*Data;
 };
 
-/* ioctl calls that are permitted to the /dev/efi_runtime interface. */
+struct efi_gettime {
+	EFI_TIME		Time;
+	EFI_TIME_CAPABILITIES	Capabilities;
+};
 
-#define EFI_RUNTIME_GET_VARIABLE _IOWR('p', 0x01, struct efi_getvariable)
-#define EFI_RUNTIME_SET_VARIABLE _IOW('p', 0x02, struct efi_setvariable)
+struct efi_settime {
+	EFI_TIME		Time;
+};
+
+/* ioctl calls that are permitted to the /dev/efi_runtime interface. */
+#define EFI_RUNTIME_GET_VARIABLE	_IOWR('p', 0x01, struct efi_getvariable)
+#define EFI_RUNTIME_SET_VARIABLE	_IOW('p', 0x02, struct efi_setvariable)
+
+#define EFI_RUNTIME_GET_TIME		_IOR('p', 0x03, struct efi_gettime)
+#define EFI_RUNTIME_SET_TIME		_IOW('p', 0x04, struct efi_settime)
 
 #endif /* _EFI_RUNTIME_H_ */

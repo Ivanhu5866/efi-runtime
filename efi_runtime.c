@@ -25,7 +25,6 @@
 #include <linux/proc_fs.h>
 #include <linux/efi.h>
 
-#include <asm/system.h>
 #include <linux/uaccess.h>
 
 #include "efi_runtime.h"
@@ -33,8 +32,46 @@
 #define EFI_FWTSEFI_VERSION	"0.1"
 
 MODULE_AUTHOR("Ivan Hu");
-MODULE_DESCRIPTION("FWTS EFI Driver");
+MODULE_DESCRIPTION("EFI Runtime Driver");
 MODULE_LICENSE("GPL");
+
+
+static void convert_to_efi_time(efi_time_t *eft, efi_time_cap_t *cap, struct efi_gettime *gettime)
+{
+	memset(gettime, 0, sizeof(gettime));
+	gettime->Time.Year = eft->year;
+	gettime->Time.Month = eft->month;
+	gettime->Time.Day  = eft->day;
+	gettime->Time.Hour = eft->hour;
+	gettime->Time.Minute = eft->minute;
+	gettime->Time.Second  = eft->second;
+	gettime->Time.Pad1 = eft->pad1;
+	gettime->Time.Nanosecond = eft->nanosecond;
+	gettime->Time.TimeZone = eft->timezone;
+	gettime->Time.Daylight = eft->daylight;
+	gettime->Time.Pad2 = eft->pad2;
+
+	gettime->Capabilities.Resolution = cap->resolution;
+	gettime->Capabilities.Accuracy = cap->accuracy;
+	gettime->Capabilities.SetsToZero = cap->sets_to_zero;
+}
+
+static void convert_from_efi_time(efi_time_t *eft, struct efi_settime *settime)
+{
+	memset(eft, 0, sizeof(eft));
+	eft->year = settime->Time.Year;
+	eft->month = settime->Time.Month;
+	eft->day = settime->Time.Day;
+	eft->hour = settime->Time.Hour;
+	eft->minute = settime->Time.Minute;
+	eft->second = settime->Time.Second;
+	eft->pad1 = settime->Time.Pad1;
+	eft->nanosecond = settime->Time.Nanosecond;
+	eft->timezone = settime->Time.TimeZone;
+	eft->daylight = settime->Time.Daylight;
+	eft->pad2 = settime->Time.Pad2;
+
+}
 
 static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 							unsigned long arg)
@@ -42,6 +79,10 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	efi_status_t status;
 	struct efi_getvariable getvariable;
 	struct efi_setvariable setvariable;
+	efi_time_t eft;
+	efi_time_cap_t cap;
+	struct efi_gettime gettime;
+	struct efi_settime settime;
 
 	switch (cmd) {
 	case EFI_RUNTIME_GET_VARIABLE:
@@ -74,7 +115,27 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 					setvariable.DataSize, setvariable.Data);
 
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
+	case EFI_RUNTIME_GET_TIME:
+		status = efi.get_time(&eft, &cap);
+		if (status != EFI_SUCCESS) {
+			printk(KERN_ERR "efitime: can't read time\n");
+			return -EINVAL;
+		}
+
+		convert_to_efi_time(&eft, &cap, &gettime);
+		return copy_to_user((void __user *)arg, &gettime, 
+					sizeof (struct efi_gettime)) ? - EFAULT : 0;
+	case EFI_RUNTIME_SET_TIME:
+
+		if (copy_from_user(&settime, (struct efi_settime __user *)arg,
+						sizeof(struct efi_settime)))
+			return -EFAULT;
+		convert_from_efi_time(&eft, &settime);
+		status = efi.set_time(&eft);
+	printk(KERN_INFO "status = %d\n", status);
+		return status == EFI_SUCCESS ? 0 : -EINVAL;
 	}
+
 	return -ENOTTY;
 }
 
