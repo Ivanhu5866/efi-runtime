@@ -132,7 +132,6 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EFAULT;
 		convert_from_efi_time(&eft, &settime);
 		status = efi.set_time(&eft);
-	printk(KERN_INFO "status = %d\n", status);
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
 	}
 
