@@ -36,40 +36,37 @@ MODULE_DESCRIPTION("EFI Runtime Driver");
 MODULE_LICENSE("GPL");
 
 
-static void convert_to_efi_time(efi_time_t *eft, efi_time_cap_t *cap, struct efi_gettime *gettime)
+static void convert_from_efi_time(efi_time_t *eft, EFI_TIME *time)
 {
-	memset(gettime, 0, sizeof(gettime));
-	gettime->Time.Year = eft->year;
-	gettime->Time.Month = eft->month;
-	gettime->Time.Day  = eft->day;
-	gettime->Time.Hour = eft->hour;
-	gettime->Time.Minute = eft->minute;
-	gettime->Time.Second  = eft->second;
-	gettime->Time.Pad1 = eft->pad1;
-	gettime->Time.Nanosecond = eft->nanosecond;
-	gettime->Time.TimeZone = eft->timezone;
-	gettime->Time.Daylight = eft->daylight;
-	gettime->Time.Pad2 = eft->pad2;
+	memset(time, 0, sizeof(EFI_TIME));
+	time->Year = eft->year;
+	time->Month = eft->month;
+	time->Day  = eft->day;
+	time->Hour = eft->hour;
+	time->Minute = eft->minute;
+	time->Second  = eft->second;
+	time->Pad1 = eft->pad1;
+	time->Nanosecond = eft->nanosecond;
+	time->TimeZone = eft->timezone;
+	time->Daylight = eft->daylight;
+	time->Pad2 = eft->pad2;
 
-	gettime->Capabilities.Resolution = cap->resolution;
-	gettime->Capabilities.Accuracy = cap->accuracy;
-	gettime->Capabilities.SetsToZero = cap->sets_to_zero;
 }
 
-static void convert_from_efi_time(efi_time_t *eft, struct efi_settime *settime)
+static void convert_to_efi_time(efi_time_t *eft, EFI_TIME *time)
 {
 	memset(eft, 0, sizeof(eft));
-	eft->year = settime->Time.Year;
-	eft->month = settime->Time.Month;
-	eft->day = settime->Time.Day;
-	eft->hour = settime->Time.Hour;
-	eft->minute = settime->Time.Minute;
-	eft->second = settime->Time.Second;
-	eft->pad1 = settime->Time.Pad1;
-	eft->nanosecond = settime->Time.Nanosecond;
-	eft->timezone = settime->Time.TimeZone;
-	eft->daylight = settime->Time.Daylight;
-	eft->pad2 = settime->Time.Pad2;
+	eft->year = time->Year;
+	eft->month = time->Month;
+	eft->day = time->Day;
+	eft->hour = time->Hour;
+	eft->minute = time->Minute;
+	eft->second = time->Second;
+	eft->pad1 = time->Pad1;
+	eft->nanosecond = time->Nanosecond;
+	eft->timezone = time->TimeZone;
+	eft->daylight = time->Daylight;
+	eft->pad2 = time->Pad2;
 
 }
 
@@ -83,6 +80,10 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	efi_time_cap_t cap;
 	struct efi_gettime gettime;
 	struct efi_settime settime;
+
+	struct efi_getwakeuptime getwakeuptime;
+	unsigned char enabled, pending;
+	struct efi_setwakeuptime setwakeuptime;
 
 	switch (cmd) {
 	case EFI_RUNTIME_GET_VARIABLE:
@@ -122,16 +123,48 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EINVAL;
 		}
 
-		convert_to_efi_time(&eft, &cap, &gettime);
-		return copy_to_user((void __user *)arg, &gettime, 
-					sizeof (struct efi_gettime)) ? - EFAULT : 0;
+
+		gettime.Capabilities.Resolution = cap.resolution;
+		gettime.Capabilities.Accuracy = cap.accuracy;
+		gettime.Capabilities.SetsToZero = cap.sets_to_zero;
+		convert_from_efi_time(&eft, &gettime.Time);
+		return copy_to_user((void __user *)arg, &gettime,
+				sizeof(struct efi_gettime)) ? -EFAULT : 0;
 	case EFI_RUNTIME_SET_TIME:
 
 		if (copy_from_user(&settime, (struct efi_settime __user *)arg,
 						sizeof(struct efi_settime)))
 			return -EFAULT;
-		convert_from_efi_time(&eft, &settime);
+		convert_to_efi_time(&eft, &settime.Time);
 		status = efi.set_time(&eft);
+		return status == EFI_SUCCESS ? 0 : -EINVAL;
+
+	case EFI_RUNTIME_GET_WAKETIME:
+
+		status = efi.get_wakeup_time((efi_bool_t *)&enabled,
+						(efi_bool_t *)&pending, &eft);
+
+		if (status != EFI_SUCCESS)
+			return -EINVAL;
+
+		getwakeuptime.Enabled = (BOOLEAN)enabled;
+		getwakeuptime.Pending = (BOOLEAN)pending;
+		convert_from_efi_time(&eft, &getwakeuptime.Time);
+
+		return copy_to_user((void __user *)arg, &getwakeuptime,
+				sizeof(struct efi_getwakeuptime)) ? -EFAULT : 0;
+
+	case EFI_RUNTIME_SET_WAKETIME:
+
+		if (copy_from_user(&setwakeuptime,
+					(struct efi_setwakeuptime __user *)arg,
+					sizeof(struct efi_setwakeuptime)))
+			return -EFAULT;
+
+		convert_to_efi_time(&eft, &setwakeuptime.Time);
+
+		status = efi.set_wakeup_time(setwakeuptime.Enabled, &eft);
+
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
 	}
 

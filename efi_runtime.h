@@ -89,11 +89,26 @@ struct efi_settime {
 	EFI_TIME		Time;
 };
 
+struct efi_getwakeuptime {
+	BOOLEAN		Enabled;
+	BOOLEAN		Pending;
+	EFI_TIME	Time;
+};
+
+struct efi_setwakeuptime {
+	BOOLEAN		Enabled;
+	EFI_TIME	Time;
+};
+
+
 /* ioctl calls that are permitted to the /dev/efi_runtime interface. */
 #define EFI_RUNTIME_GET_VARIABLE	_IOWR('p', 0x01, struct efi_getvariable)
 #define EFI_RUNTIME_SET_VARIABLE	_IOW('p', 0x02, struct efi_setvariable)
 
 #define EFI_RUNTIME_GET_TIME		_IOR('p', 0x03, struct efi_gettime)
 #define EFI_RUNTIME_SET_TIME		_IOW('p', 0x04, struct efi_settime)
+
+#define EFI_RUNTIME_GET_WAKETIME	_IOR('p', 0x05, struct efi_getwakeuptime)
+#define EFI_RUNTIME_SET_WAKETIME	_IOW('p', 0x06, struct efi_setwakeuptime)
 
 #endif /* _EFI_RUNTIME_H_ */
