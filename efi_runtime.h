@@ -97,7 +97,7 @@ struct efi_getwakeuptime {
 
 struct efi_setwakeuptime {
 	BOOLEAN		Enabled;
-	EFI_TIME	Time;
+	EFI_TIME	*Time;
 };
 
 
