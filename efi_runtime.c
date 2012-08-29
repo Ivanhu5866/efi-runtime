@@ -81,10 +81,9 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	struct efi_gettime gettime;
 	struct efi_settime settime;
 
-	struct efi_getwakeuptime getwakeuptime;
 	unsigned char enabled, pending;
 	EFI_TIME efi_time;
-
+	struct efi_getwakeuptime __user *pgetwakeuptime;
 	struct efi_setwakeuptime __user *psetwakeuptime;	
 
 	switch (cmd) {
@@ -125,7 +124,6 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EINVAL;
 		}
 
-
 		gettime.Capabilities.Resolution = cap.resolution;
 		gettime.Capabilities.Accuracy = cap.accuracy;
 		gettime.Capabilities.SetsToZero = cap.sets_to_zero;
@@ -149,11 +147,15 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 		if (status != EFI_SUCCESS)
 			return -EINVAL;
 
-		getwakeuptime.Enabled = (BOOLEAN)enabled;
-		getwakeuptime.Pending = (BOOLEAN)pending;
-		convert_from_efi_time(&eft, &getwakeuptime.Time);
+		pgetwakeuptime = (struct efi_getwakeuptime __user *)arg;
 
-		return copy_to_user((void __user *)arg, &getwakeuptime,
+		if (put_user(enabled, pgetwakeuptime->Enabled) ||
+				put_user(pending, pgetwakeuptime->Pending))
+			return -EFAULT;
+
+		convert_from_efi_time(&eft, &efi_time);
+
+		return copy_to_user(pgetwakeuptime->Time, &efi_time,
 				sizeof(struct efi_getwakeuptime)) ? -EFAULT : 0;
 
 	case EFI_RUNTIME_SET_WAKETIME:
