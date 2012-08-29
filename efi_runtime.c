@@ -78,13 +78,13 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	struct efi_setvariable setvariable;
 	efi_time_t eft;
 	efi_time_cap_t cap;
-	struct efi_gettime gettime;
-	struct efi_settime settime;
+	struct efi_gettime __user *pgettime;
+	struct efi_settime __user *psettime;
 
 	unsigned char enabled, pending;
 	EFI_TIME efi_time;
 	struct efi_getwakeuptime __user *pgetwakeuptime;
-	struct efi_setwakeuptime __user *psetwakeuptime;	
+	struct efi_setwakeuptime __user *psetwakeuptime;
 
 	switch (cmd) {
 	case EFI_RUNTIME_GET_VARIABLE:
@@ -124,18 +124,23 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EINVAL;
 		}
 
-		gettime.Capabilities.Resolution = cap.resolution;
-		gettime.Capabilities.Accuracy = cap.accuracy;
-		gettime.Capabilities.SetsToZero = cap.sets_to_zero;
-		convert_from_efi_time(&eft, &gettime.Time);
-		return copy_to_user((void __user *)arg, &gettime,
-				sizeof(struct efi_gettime)) ? -EFAULT : 0;
+		pgettime = (struct efi_gettime __user *)arg;
+		if (put_user(cap.resolution,
+					&pgettime->Capabilities->Resolution) ||
+					put_user(cap.accuracy,
+					&pgettime->Capabilities->Accuracy) ||
+					put_user(cap.sets_to_zero,
+					&pgettime->Capabilities->SetsToZero))
+			return -EFAULT;
+		return copy_to_user(pgettime->Time, &eft,
+				sizeof(EFI_TIME)) ? -EFAULT : 0;
 	case EFI_RUNTIME_SET_TIME:
 
-		if (copy_from_user(&settime, (struct efi_settime __user *)arg,
-						sizeof(struct efi_settime)))
+		psettime = (struct efi_settime __user *)arg;
+		if (copy_from_user(&efi_time, psettime->Time,
+						sizeof(EFI_TIME)))
 			return -EFAULT;
-		convert_to_efi_time(&eft, &settime.Time);
+		convert_to_efi_time(&eft, &efi_time);
 		status = efi.set_time(&eft);
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
 
@@ -156,7 +161,7 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 		convert_from_efi_time(&eft, &efi_time);
 
 		return copy_to_user(pgetwakeuptime->Time, &efi_time,
-				sizeof(struct efi_getwakeuptime)) ? -EFAULT : 0;
+				sizeof(EFI_TIME)) ? -EFAULT : 0;
 
 	case EFI_RUNTIME_SET_WAKETIME:
 
@@ -165,7 +170,7 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 		if (get_user(enabled, &psetwakeuptime->Enabled) ||
 					copy_from_user(&efi_time,
 					psetwakeuptime->Time,
-					sizeof(struct efi_setwakeuptime)))
+					sizeof(EFI_TIME)))
 			return -EFAULT;
 
 		convert_to_efi_time(&eft, &efi_time);

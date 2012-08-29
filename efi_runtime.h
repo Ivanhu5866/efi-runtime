@@ -81,12 +81,12 @@ struct efi_setvariable {
 };
 
 struct efi_gettime {
-	EFI_TIME		Time;
-	EFI_TIME_CAPABILITIES	Capabilities;
+	EFI_TIME		*Time;
+	EFI_TIME_CAPABILITIES	*Capabilities;
 };
 
 struct efi_settime {
-	EFI_TIME		Time;
+	EFI_TIME		*Time;
 };
 
 struct efi_getwakeuptime {
