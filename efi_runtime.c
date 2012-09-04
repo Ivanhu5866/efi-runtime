@@ -233,7 +233,8 @@ static int __init efi_runtime_init(void)
 
 static void __exit efi_runtime_exit(void)
 {
-	/* not yet used */
+	printk(KERN_INFO "EFI_RUNTIME Driver Exit.\n");
+	misc_deregister(&efi_runtime_dev);
 }
 
 module_init(efi_runtime_init);
