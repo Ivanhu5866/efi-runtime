@@ -1,0 +1,35 @@
+
+=== EFI_RUNTIME OVERVIEW ===
+
+The Efi_runtime kernel driver module aims to provide the interfaces for 
+fwts (firmware test suite) to test the UEFI Runtime services provide by firmware.
+
+The source code link:
+git://kernel.ubuntu.com/ivanhu/efi_runtime.git
+
+=== STATUS === 
+
+Current status: Draft
+
+Current capabilities:
+* provide the RT service interfaces:
+  * GetVariable
+  * SetVariable
+  * GetTime
+  * SetTime
+  * GetWakeupTime
+  * SetWakeupTime
+
+=== BUILDING and INSERT EFI_RUNTIME ===
+
+Use following command in the Ubuntu terminal.
+# make
+
+And insert the module manually to the linux kernel.
+# sudo insmod efi_runtime.ko
+
+
+=== FUTURE PLANS ===
+
+This kernel driver module will be integrated into fwts when it becomes mature.
+The repository is temporary.
