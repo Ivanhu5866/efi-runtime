@@ -29,12 +29,18 @@
 
 #include "efi_runtime.h"
 
+#define EFI_GUID_CONV(a, b, c, d) \
+((efi_guid_t) \
+{{(a) & 0xff, ((a) >> 8) & 0xff, ((a) >> 16) & 0xff, ((a) >> 24) & 0xff, \
+(b) & 0xff, ((b) >> 8) & 0xff, \
+(c) & 0xff, ((c) >> 8) & 0xff, \
+(d[0]), (d[1]), (d[2]), (d[3]), (d[4]), (d[5]), (d[6]), (d[7]) } })
+
 #define EFI_FWTSEFI_VERSION	"0.1"
 
 MODULE_AUTHOR("Ivan Hu");
 MODULE_DESCRIPTION("EFI Runtime Driver");
 MODULE_LICENSE("GPL");
-
 
 static void convert_from_efi_time(efi_time_t *eft, EFI_TIME *time)
 {
@@ -50,7 +56,6 @@ static void convert_from_efi_time(efi_time_t *eft, EFI_TIME *time)
 	time->TimeZone = eft->timezone;
 	time->Daylight = eft->daylight;
 	time->Pad2 = eft->pad2;
-
 }
 
 static void convert_to_efi_time(efi_time_t *eft, EFI_TIME *time)
@@ -67,15 +72,21 @@ static void convert_to_efi_time(efi_time_t *eft, EFI_TIME *time)
 	eft->timezone = time->TimeZone;
 	eft->daylight = time->Daylight;
 	eft->pad2 = time->Pad2;
-
 }
 
 static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 							unsigned long arg)
 {
 	efi_status_t status;
-	struct efi_getvariable getvariable;
-	struct efi_setvariable setvariable;
+	struct efi_getvariable __user *pgetvariable;
+	struct efi_setvariable __user *psetvariable;
+
+	efi_char16_t name[1024/sizeof(efi_char16_t)];
+	efi_guid_t vendor;
+	EFI_GUID vendor_guid;
+	unsigned long datasize;
+	UINT32 attr;
+
 	efi_time_t eft;
 	efi_time_cap_t cap;
 	struct efi_gettime __user *pgettime;
@@ -85,38 +96,57 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	EFI_TIME efi_time;
 	struct efi_getwakeuptime __user *pgetwakeuptime;
 	struct efi_setwakeuptime __user *psetwakeuptime;
+	int i;
 
 	switch (cmd) {
 	case EFI_RUNTIME_GET_VARIABLE:
-		if (copy_from_user(&getvariable,
-					(struct efi_getvariable __user *)arg,
-					sizeof(struct efi_getvariable)))
+		pgetvariable = (struct efi_getvariable __user *)arg;
+		i = 0;
+		while (pgetvariable->VariableName[i] != '\0') {
+			name[i] = pgetvariable->VariableName[i];
+			i++;
+		};
+		name[i] = '\0';
+		if (get_user(datasize, pgetvariable->DataSize) ||
+			copy_from_user(&vendor_guid, pgetvariable->VendorGuid,
+							sizeof(EFI_GUID)))
 			return -EFAULT;
 
-		status = efi.get_variable(getvariable.variable_name,
-					(efi_guid_t *)getvariable.VendorGuid,
-					getvariable.Attributes,
-					getvariable.DataSize, getvariable.Data);
+		vendor = EFI_GUID_CONV(vendor_guid.Data1, vendor_guid.Data2,
+					vendor_guid.Data3, vendor_guid.Data4);
+		status = efi.get_variable(name, &vendor, &attr, &datasize,
+							pgetvariable->Data);
+
 		if (status == EFI_SUCCESS) {
-			return copy_to_user((void __user *)arg, &getvariable,
-						sizeof(struct efi_getvariable))
-						? -EFAULT : 0;
+			if (put_user(attr, pgetvariable->Attributes) ||
+				put_user(datasize, pgetvariable->DataSize))
+				return -EFAULT;
+			return 0;
 		} else {
 			printk(KERN_ERR "efi_runtime: can't get variable\n");
 			return -EINVAL;
 		}
+
 	case EFI_RUNTIME_SET_VARIABLE:
-		if (copy_from_user(&setvariable,
-					(struct efi_setvariable __user *)arg,
-					sizeof(struct efi_setvariable)))
+		psetvariable = (struct efi_setvariable __user *)arg;
+		i = 0;
+		while (psetvariable->VariableName[i] != '\0') {
+			name[i] = psetvariable->VariableName[i];
+			i++;
+		};
+		name[i] = '\0';
+		if (get_user(datasize, &psetvariable->DataSize) ||
+			get_user(attr, &psetvariable->Attributes) ||
+			copy_from_user(&vendor_guid, psetvariable->VendorGuid,
+							sizeof(EFI_GUID)))
 			return -EFAULT;
 
-		status = efi.set_variable(setvariable.variable_name,
-					(efi_guid_t *)setvariable.VendorGuid,
-					setvariable.Attributes,
-					setvariable.DataSize, setvariable.Data);
-
+		vendor = EFI_GUID_CONV(vendor_guid.Data1, vendor_guid.Data2,
+					vendor_guid.Data3, vendor_guid.Data4);
+		status = efi.set_variable(name, &vendor, attr, datasize,
+							psetvariable->Data);
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
+
 	case EFI_RUNTIME_GET_TIME:
 		status = efi.get_time(&eft, &cap);
 		if (status != EFI_SUCCESS) {
@@ -134,6 +164,7 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EFAULT;
 		return copy_to_user(pgettime->Time, &eft,
 				sizeof(EFI_TIME)) ? -EFAULT : 0;
+
 	case EFI_RUNTIME_SET_TIME:
 
 		psettime = (struct efi_settime __user *)arg;
