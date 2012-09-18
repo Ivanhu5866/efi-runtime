@@ -19,6 +19,7 @@ Current capabilities:
   * SetTime
   * GetWakeupTime
   * SetWakeupTime
+  * GetNextVariableName
 
 === BUILDING and INSERT EFI_RUNTIME ===
 

@@ -29,13 +29,6 @@
 
 #include "efi_runtime.h"
 
-#define EFI_GUID_CONV(a, b, c, d) \
-((efi_guid_t) \
-{{(a) & 0xff, ((a) >> 8) & 0xff, ((a) >> 16) & 0xff, ((a) >> 24) & 0xff, \
-(b) & 0xff, ((b) >> 8) & 0xff, \
-(c) & 0xff, ((c) >> 8) & 0xff, \
-(d[0]), (d[1]), (d[2]), (d[3]), (d[4]), (d[5]), (d[6]), (d[7]) } })
-
 #define EFI_FWTSEFI_VERSION	"0.1"
 
 MODULE_AUTHOR("Ivan Hu");
@@ -74,6 +67,32 @@ static void convert_to_efi_time(efi_time_t *eft, EFI_TIME *time)
 	eft->pad2 = time->Pad2;
 }
 
+static void convert_from_guid(efi_guid_t *vendor, EFI_GUID *vendor_guid)
+{
+	int i;
+	for (i = 0; i < 16; i++) {
+		if (i < 4)
+			vendor->b[i] = (vendor_guid->Data1 >> (8*i)) & 0xff;
+		else if (i < 6)
+			vendor->b[i] = (vendor_guid->Data2 >> (8*(i-4))) & 0xff;
+		else if (i < 8)
+			vendor->b[i] = (vendor_guid->Data3 >> (8*(i-6))) & 0xff;
+		else
+			vendor->b[i] = (vendor_guid->Data4[i-8]);
+	}
+}
+
+static void convert_to_guid(efi_guid_t *vendor, EFI_GUID *vendor_guid)
+{
+	int i;
+	vendor_guid->Data1 = vendor->b[0] + (vendor->b[1] << 8) +
+				(vendor->b[2] << 16) + (vendor->b[3] << 24);
+	vendor_guid->Data2 = vendor->b[4] + (vendor->b[5] << 8);
+	vendor_guid->Data3 = vendor->b[6] + (vendor->b[7] << 8);
+	for (i = 0; i < 8; i++)
+		vendor_guid->Data4[i] = vendor->b[i+8];
+}
+
 static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 							unsigned long arg)
 {
@@ -98,6 +117,9 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	struct efi_setwakeuptime __user *psetwakeuptime;
 	int i;
 
+	struct efi_getnextvariablename __user *pgetnextvariablename;
+	unsigned long name_size;
+
 	switch (cmd) {
 	case EFI_RUNTIME_GET_VARIABLE:
 		pgetvariable = (struct efi_getvariable __user *)arg;
@@ -112,8 +134,7 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 							sizeof(EFI_GUID)))
 			return -EFAULT;
 
-		vendor = EFI_GUID_CONV(vendor_guid.Data1, vendor_guid.Data2,
-					vendor_guid.Data3, vendor_guid.Data4);
+		convert_from_guid(&vendor, &vendor_guid);
 		status = efi.get_variable(name, &vendor, &attr, &datasize,
 							pgetvariable->Data);
 
@@ -141,8 +162,7 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 							sizeof(EFI_GUID)))
 			return -EFAULT;
 
-		vendor = EFI_GUID_CONV(vendor_guid.Data1, vendor_guid.Data2,
-					vendor_guid.Data3, vendor_guid.Data4);
+		convert_from_guid(&vendor, &vendor_guid);
 		status = efi.set_variable(name, &vendor, attr, datasize,
 							psetvariable->Data);
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
@@ -209,6 +229,40 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 		status = efi.set_wakeup_time(enabled, &eft);
 
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
+
+	case EFI_RUNTIME_GET_NEXTVARIABLENAME:
+
+		pgetnextvariablename = (struct efi_getnextvariablename
+								__user *)arg;
+
+		if (get_user(name_size, pgetnextvariablename->VariableNameSize)
+				|| copy_from_user(name,
+				pgetnextvariablename->VariableName, name_size)
+				|| copy_from_user(&vendor_guid,
+					pgetnextvariablename->VendorGuid,
+					sizeof(EFI_GUID)))
+			return -EFAULT;
+		if (name_size > 1024)
+			return -EFAULT;
+
+		convert_from_guid(&vendor, &vendor_guid);
+
+		status = efi.get_next_variable(&name_size, name, &vendor);
+
+		if (status != EFI_SUCCESS)
+			return -EINVAL;
+		convert_to_guid(&vendor, &vendor_guid);
+
+		if (put_user(name_size, pgetnextvariablename->VariableNameSize))
+			return -EFAULT;
+
+		if (copy_to_user(pgetnextvariablename->VariableName, name,
+								name_size))
+			return -EFAULT;
+		if (copy_to_user(pgetnextvariablename->VendorGuid,
+						&vendor_guid, sizeof(EFI_GUID)))
+			return -EFAULT;
+		return 0;
 	}
 
 	return -ENOTTY;
