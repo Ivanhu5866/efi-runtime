@@ -100,7 +100,6 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	struct efi_getvariable __user *pgetvariable;
 	struct efi_setvariable __user *psetvariable;
 
-	efi_char16_t name[1024/sizeof(efi_char16_t)];
 	efi_guid_t vendor;
 	EFI_GUID vendor_guid;
 	unsigned long datasize;
@@ -115,7 +114,6 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	EFI_TIME efi_time;
 	struct efi_getwakeuptime __user *pgetwakeuptime;
 	struct efi_setwakeuptime __user *psetwakeuptime;
-	int i;
 
 	struct efi_getnextvariablename __user *pgetnextvariablename;
 	unsigned long name_size;
@@ -123,20 +121,15 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	switch (cmd) {
 	case EFI_RUNTIME_GET_VARIABLE:
 		pgetvariable = (struct efi_getvariable __user *)arg;
-		i = 0;
-		while (pgetvariable->VariableName[i] != '\0') {
-			name[i] = pgetvariable->VariableName[i];
-			i++;
-		};
-		name[i] = '\0';
+
 		if (get_user(datasize, pgetvariable->DataSize) ||
 			copy_from_user(&vendor_guid, pgetvariable->VendorGuid,
 							sizeof(EFI_GUID)))
 			return -EFAULT;
 
 		convert_from_guid(&vendor, &vendor_guid);
-		status = efi.get_variable(name, &vendor, &attr, &datasize,
-							pgetvariable->Data);
+		status = efi.get_variable(pgetvariable->VariableName, &vendor,
+					&attr, &datasize, pgetvariable->Data);
 
 		if (status == EFI_SUCCESS) {
 			if (put_user(attr, pgetvariable->Attributes) ||
@@ -150,12 +143,6 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 
 	case EFI_RUNTIME_SET_VARIABLE:
 		psetvariable = (struct efi_setvariable __user *)arg;
-		i = 0;
-		while (psetvariable->VariableName[i] != '\0') {
-			name[i] = psetvariable->VariableName[i];
-			i++;
-		};
-		name[i] = '\0';
 		if (get_user(datasize, &psetvariable->DataSize) ||
 			get_user(attr, &psetvariable->Attributes) ||
 			copy_from_user(&vendor_guid, psetvariable->VendorGuid,
@@ -163,8 +150,8 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EFAULT;
 
 		convert_from_guid(&vendor, &vendor_guid);
-		status = efi.set_variable(name, &vendor, attr, datasize,
-							psetvariable->Data);
+		status = efi.set_variable(psetvariable->VariableName, &vendor,
+					attr, datasize, psetvariable->Data);
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
 
 	case EFI_RUNTIME_GET_TIME:
@@ -236,8 +223,6 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 								__user *)arg;
 
 		if (get_user(name_size, pgetnextvariablename->VariableNameSize)
-				|| copy_from_user(name,
-				pgetnextvariablename->VariableName, name_size)
 				|| copy_from_user(&vendor_guid,
 					pgetnextvariablename->VendorGuid,
 					sizeof(EFI_GUID)))
@@ -247,7 +232,9 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 
 		convert_from_guid(&vendor, &vendor_guid);
 
-		status = efi.get_next_variable(&name_size, name, &vendor);
+		status = efi.get_next_variable(&name_size,
+					pgetnextvariablename->VariableName,
+								&vendor);
 
 		if (status != EFI_SUCCESS)
 			return -EINVAL;
@@ -256,9 +243,6 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 		if (put_user(name_size, pgetnextvariablename->VariableNameSize))
 			return -EFAULT;
 
-		if (copy_to_user(pgetnextvariablename->VariableName, name,
-								name_size))
-			return -EFAULT;
 		if (copy_to_user(pgetnextvariablename->VendorGuid,
 						&vendor_guid, sizeof(EFI_GUID)))
 			return -EFAULT;
