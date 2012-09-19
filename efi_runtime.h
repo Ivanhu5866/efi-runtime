@@ -42,7 +42,7 @@ typedef struct {
 	UINT16  Data2;
 	UINT16  Data3;
 	UINT8   Data4[8];
-} EFI_GUID;
+} __attribute__ ((packed)) EFI_GUID;
 
 typedef struct {
 	UINT16	Year;		/* 1900 – 9999 */
@@ -56,13 +56,13 @@ typedef struct {
 	INT16	TimeZone;	/* -1440 to 1440 or 2047 */
 	UINT8	Daylight;
 	UINT8	Pad2;
-} EFI_TIME;
+} __attribute__ ((packed)) EFI_TIME;
 
 typedef struct {
 	UINT32	Resolution;
 	UINT32	Accuracy;
 	BOOLEAN	SetsToZero;
-} EFI_TIME_CAPABILITIES;
+} __attribute__ ((packed)) EFI_TIME_CAPABILITIES;
 
 struct efi_getvariable {
 	CHAR16		*VariableName;
@@ -70,7 +70,7 @@ struct efi_getvariable {
 	UINT32		*Attributes;
 	UINTN		*DataSize;
 	VOID		*Data;
-};
+} __attribute__ ((packed));
 
 struct efi_setvariable {
 	CHAR16		*VariableName;
@@ -78,33 +78,33 @@ struct efi_setvariable {
 	UINT32		Attributes;
 	UINTN		DataSize;
 	VOID		*Data;
-};
+} __attribute__ ((packed));
 
 struct efi_getnextvariablename {
 	UINTN		*VariableNameSize;
 	CHAR16		*VariableName;
 	EFI_GUID	*VendorGuid;
-};
+} __attribute__ ((packed));
 
 struct efi_gettime {
 	EFI_TIME		*Time;
 	EFI_TIME_CAPABILITIES	*Capabilities;
-};
+} __attribute__ ((packed));
 
 struct efi_settime {
 	EFI_TIME		*Time;
-};
+} __attribute__ ((packed));
 
 struct efi_getwakeuptime {
 	BOOLEAN		*Enabled;
 	BOOLEAN		*Pending;
 	EFI_TIME	*Time;
-};
+} __attribute__ ((packed));
 
 struct efi_setwakeuptime {
 	BOOLEAN		Enabled;
 	EFI_TIME	*Time;
-};
+} __attribute__ ((packed));
 
 /* ioctl calls that are permitted to the /dev/efi_runtime interface. */
 #define EFI_RUNTIME_GET_VARIABLE \
