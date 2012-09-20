@@ -18,7 +18,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <linux/types.h>
+//#include <linux/types.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
 #include <linux/init.h>
@@ -29,7 +29,7 @@
 
 #include "efi_runtime.h"
 
-#define EFI_FWTSEFI_VERSION	"0.1"
+#define EFI_FWTS_EFI_VERSION	"0.1"
 
 MODULE_AUTHOR("Ivan Hu");
 MODULE_DESCRIPTION("EFI Runtime Driver");
@@ -103,7 +103,7 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 	efi_guid_t vendor;
 	EFI_GUID vendor_guid;
 	unsigned long datasize;
-	UINT32 attr;
+	uint32_t attr;
 
 	efi_time_t eft;
 	efi_time_cap_t cap;
@@ -288,7 +288,7 @@ static int __init efi_runtime_init(void)
 {
 	int ret;
 
-	printk(KERN_INFO "EFI_RUNTIME Driver v%s\n", EFI_FWTSEFI_VERSION);
+	printk(KERN_INFO "EFI_RUNTIME Driver v%s\n", EFI_FWTS_EFI_VERSION);
 
 	ret = misc_register(&efi_runtime_dev);
 	if (ret) {

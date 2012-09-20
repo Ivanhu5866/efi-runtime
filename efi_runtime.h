@@ -21,68 +21,54 @@
 #ifndef _EFI_RUNTIME_H_
 #define _EFI_RUNTIME_H_
 
-#include <linux/types.h>
-
-typedef unsigned long int	UINTN;
-typedef unsigned long long	UINT64;
-typedef long long		INT64;
-typedef unsigned int		UINT32;
-typedef int			INT32;
-typedef unsigned short		UINT16;
-typedef unsigned short		CHAR16;
-typedef short			INT16;
-typedef unsigned char		BOOLEAN;
-typedef unsigned char		UINT8;
-typedef char			CHAR8;
-typedef char			INT8;
-typedef void			VOID;
+//#include <linux/types.h>
 
 typedef struct {
-	UINT32  Data1;
-	UINT16  Data2;
-	UINT16  Data3;
-	UINT8   Data4[8];
+	uint32_t	Data1;
+	uint16_t	Data2;
+	uint16_t	Data3;
+	uint8_t		Data4[8];
 } __attribute__ ((packed)) EFI_GUID;
 
 typedef struct {
-	UINT16	Year;		/* 1900 – 9999 */
-	UINT8	Month;		/* 1 – 12 */
-	UINT8	Day;		/* 1 – 31 */
-	UINT8	Hour;		/* 0 – 23 */
-	UINT8	Minute;		/* 0 – 59 */
-	UINT8	Second;		/* 0 – 59 */
-	UINT8	Pad1;
-	UINT32	Nanosecond;	/* 0 – 999,999,999 */
-	INT16	TimeZone;	/* -1440 to 1440 or 2047 */
-	UINT8	Daylight;
-	UINT8	Pad2;
+	uint16_t	Year;		/* 1900 – 9999 */
+	uint8_t		Month;		/* 1 – 12 */
+	uint8_t		Day;		/* 1 – 31 */
+	uint8_t		Hour;		/* 0 – 23 */
+	uint8_t		Minute;		/* 0 – 59 */
+	uint8_t		Second;		/* 0 – 59 */
+	uint8_t		Pad1;
+	uint32_t	Nanosecond;	/* 0 – 999,999,999 */
+	int16_t		TimeZone;	/* -1440 to 1440 or 2047 */
+	uint8_t		Daylight;
+	uint8_t		Pad2;
 } __attribute__ ((packed)) EFI_TIME;
 
 typedef struct {
-	UINT32	Resolution;
-	UINT32	Accuracy;
-	BOOLEAN	SetsToZero;
+	uint32_t	Resolution;
+	uint32_t	Accuracy;
+	uint8_t		SetsToZero;
 } __attribute__ ((packed)) EFI_TIME_CAPABILITIES;
 
 struct efi_getvariable {
-	CHAR16		*VariableName;
+	uint16_t	*VariableName;
 	EFI_GUID	*VendorGuid;
-	UINT32		*Attributes;
-	UINTN		*DataSize;
-	VOID		*Data;
+	uint32_t	*Attributes;
+	uint64_t	*DataSize;
+	void		*Data;
 } __attribute__ ((packed));
 
 struct efi_setvariable {
-	CHAR16		*VariableName;
+	uint16_t	*VariableName;
 	EFI_GUID	*VendorGuid;
-	UINT32		Attributes;
-	UINTN		DataSize;
-	VOID		*Data;
+	uint32_t	Attributes;
+	uint64_t	DataSize;
+	void		*Data;
 } __attribute__ ((packed));
 
 struct efi_getnextvariablename {
-	UINTN		*VariableNameSize;
-	CHAR16		*VariableName;
+	uint64_t	*VariableNameSize;
+	uint16_t	*VariableName;
 	EFI_GUID	*VendorGuid;
 } __attribute__ ((packed));
 
@@ -96,13 +82,13 @@ struct efi_settime {
 } __attribute__ ((packed));
 
 struct efi_getwakeuptime {
-	BOOLEAN		*Enabled;
-	BOOLEAN		*Pending;
+	uint8_t		*Enabled;
+	uint8_t		*Pending;
 	EFI_TIME	*Time;
 } __attribute__ ((packed));
 
 struct efi_setwakeuptime {
-	BOOLEAN		Enabled;
+	uint8_t		Enabled;
 	EFI_TIME	*Time;
 } __attribute__ ((packed));
 
