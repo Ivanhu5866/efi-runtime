@@ -18,7 +18,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-//#include <linux/types.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
 #include <linux/init.h>
@@ -130,7 +129,8 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 		convert_from_guid(&vendor, &vendor_guid);
 		status = efi.get_variable(pgetvariable->VariableName, &vendor,
 					&attr, &datasize, pgetvariable->Data);
-
+		if (put_user(status, pgetvariable->status))
+			return -EFAULT;
 		if (status == EFI_SUCCESS) {
 			if (put_user(attr, pgetvariable->Attributes) ||
 				put_user(datasize, pgetvariable->DataSize))
@@ -152,16 +152,20 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 		convert_from_guid(&vendor, &vendor_guid);
 		status = efi.set_variable(psetvariable->VariableName, &vendor,
 					attr, datasize, psetvariable->Data);
+
+		if (put_user(status, psetvariable->status))
+			return -EFAULT;
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
 
 	case EFI_RUNTIME_GET_TIME:
 		status = efi.get_time(&eft, &cap);
+		pgettime = (struct efi_gettime __user *)arg;
+		if (put_user(status, pgettime->status))
+			return -EFAULT;
 		if (status != EFI_SUCCESS) {
 			printk(KERN_ERR "efitime: can't read time\n");
 			return -EINVAL;
 		}
-
-		pgettime = (struct efi_gettime __user *)arg;
 		if (put_user(cap.resolution,
 					&pgettime->Capabilities->Resolution) ||
 					put_user(cap.accuracy,
@@ -180,6 +184,10 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 			return -EFAULT;
 		convert_to_efi_time(&eft, &efi_time);
 		status = efi.set_time(&eft);
+
+		if (put_user(status, psettime->status))
+			return -EFAULT;
+
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
 
 	case EFI_RUNTIME_GET_WAKETIME:
@@ -187,10 +195,12 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 		status = efi.get_wakeup_time((efi_bool_t *)&enabled,
 						(efi_bool_t *)&pending, &eft);
 
+		pgetwakeuptime = (struct efi_getwakeuptime __user *)arg;
+
+		if (put_user(status, pgetwakeuptime->status))
+			return -EFAULT;
 		if (status != EFI_SUCCESS)
 			return -EINVAL;
-
-		pgetwakeuptime = (struct efi_getwakeuptime __user *)arg;
 
 		if (put_user(enabled, pgetwakeuptime->Enabled) ||
 				put_user(pending, pgetwakeuptime->Pending))
@@ -215,6 +225,9 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 
 		status = efi.set_wakeup_time(enabled, &eft);
 
+		if (put_user(status, psetwakeuptime->status))
+			return -EFAULT;
+
 		return status == EFI_SUCCESS ? 0 : -EINVAL;
 
 	case EFI_RUNTIME_GET_NEXTVARIABLENAME:
@@ -235,7 +248,8 @@ static long efi_runtime_ioctl(struct file *file, unsigned int cmd,
 		status = efi.get_next_variable(&name_size,
 					pgetnextvariablename->VariableName,
 								&vendor);
-
+		if (put_user(status, pgetnextvariablename->status))
+			return -EFAULT;
 		if (status != EFI_SUCCESS)
 			return -EINVAL;
 		convert_to_guid(&vendor, &vendor_guid);

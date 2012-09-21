@@ -21,8 +21,6 @@
 #ifndef _EFI_RUNTIME_H_
 #define _EFI_RUNTIME_H_
 
-//#include <linux/types.h>
-
 typedef struct {
 	uint32_t	Data1;
 	uint16_t	Data2;
@@ -56,6 +54,7 @@ struct efi_getvariable {
 	uint32_t	*Attributes;
 	uint64_t	*DataSize;
 	void		*Data;
+	uint64_t	*status;
 } __attribute__ ((packed));
 
 struct efi_setvariable {
@@ -64,32 +63,38 @@ struct efi_setvariable {
 	uint32_t	Attributes;
 	uint64_t	DataSize;
 	void		*Data;
+	uint64_t	*status;
 } __attribute__ ((packed));
 
 struct efi_getnextvariablename {
 	uint64_t	*VariableNameSize;
 	uint16_t	*VariableName;
 	EFI_GUID	*VendorGuid;
+	uint64_t	*status;
 } __attribute__ ((packed));
 
 struct efi_gettime {
 	EFI_TIME		*Time;
 	EFI_TIME_CAPABILITIES	*Capabilities;
+	uint64_t		*status;
 } __attribute__ ((packed));
 
 struct efi_settime {
 	EFI_TIME		*Time;
+	uint64_t		*status;
 } __attribute__ ((packed));
 
 struct efi_getwakeuptime {
 	uint8_t		*Enabled;
 	uint8_t		*Pending;
 	EFI_TIME	*Time;
+	uint64_t	*status;
 } __attribute__ ((packed));
 
 struct efi_setwakeuptime {
 	uint8_t		Enabled;
 	EFI_TIME	*Time;
+	uint64_t	*status;
 } __attribute__ ((packed));
 
 /* ioctl calls that are permitted to the /dev/efi_runtime interface. */
