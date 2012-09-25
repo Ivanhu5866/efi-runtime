@@ -304,6 +304,9 @@ static int __init efi_runtime_init(void)
 
 	printk(KERN_INFO "EFI_RUNTIME Driver v%s\n", EFI_FWTS_EFI_VERSION);
 
+	if (!efi_enabled)
+		return 0;
+
 	ret = misc_register(&efi_runtime_dev);
 	if (ret) {
 		printk(KERN_ERR "efi_runtime: can't misc_register on minor=%d\n",
@@ -317,7 +320,9 @@ static int __init efi_runtime_init(void)
 static void __exit efi_runtime_exit(void)
 {
 	printk(KERN_INFO "EFI_RUNTIME Driver Exit.\n");
-	misc_deregister(&efi_runtime_dev);
+	if (efi_enabled) {
+		misc_deregister(&efi_runtime_dev);
+	}
 }
 
 module_init(efi_runtime_init);
