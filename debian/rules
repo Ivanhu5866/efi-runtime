@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all
+
+DEB_BUILD_ARCH := $(shell dpkg-architecture -qDEB_BUILD_ARCH)
+
+DEBVERS := $(shell dpkg-parsechangelog | grep ^Version: | cut -d' ' -f2 \
+		| cut -d- -f1)
+
+VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/[+-].*//' -e 's/~//g')
+
+DKMS_SRC_DIR := $(CURDIR)/debian/efi-runtime-dkms/usr/src/efi-runtime-dkms-$(VERSION)
+
+override_dh_auto_install:
+	install -d $(DKMS_SRC_DIR)
+	cp -a src/* $(DKMS_SRC_DIR)
+	dh_auto_install
+
+override_dh_dkms:
+	dh_dkms -V $(VERSION)
+
+%:
+	dh $@ --with dkms
