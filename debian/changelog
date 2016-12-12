@@ -1,0 +1,5 @@
+efi-runtime (00.01.00-0ubuntu1) zesty; urgency=low
+
+  * Initial release.
+
+ -- Ivan Hu <ivan.hu@ubuntu.com>  Mon, 12 Dec 2016 18:08:42 +0800
