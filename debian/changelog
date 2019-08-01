@@ -1,3 +1,21 @@
+efi-runtime (00.02.00-0ubuntu1) eoan; urgency=low
+
+  [Colin Ian King]
+  * efi_runtime: fix access_ok build issues on 5.0 kernels
+
+  [Geliang Tang]
+  * efi_runtime: Use memdup_user helper
+
+  [Ivan Hu]
+  * efi_runtime: add resetsystem runtime service
+  * efi_runtime: fix gcc warning for efi_runtime_reset_system
+  * efi_runtime: re-enable the resetsystem runtime interface
+  * Update copy right year to 2019
+  * Update auto-packager
+
+
+ -- Ivan Hu <ivan.hu@ubuntu.com>  Thu, 01 Aug 2019 15:37:19 +0800
+
 efi-runtime (00.01.00-0ubuntu1) zesty; urgency=low
 
   * Initial release.
