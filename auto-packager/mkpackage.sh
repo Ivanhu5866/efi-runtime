@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Copyright (C) 2016 Canonical
+# Copyright (C) 2016-2019 Canonical
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@
 # Get efi-runtime sources, strip out .git directory, add in necessary debian packaging
 # files, build source package ready for upload.
 #
-RELEASES="precise trusty xenial yakkety zesty"
+RELEASES="xenial bionic disco eoan"
 REPO=git://kernel.ubuntu.com/ivanhu/efi-runtime
 EFIRUNTIME=efi-runtime
 
